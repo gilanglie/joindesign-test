@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Container, Row, Col, Form, FormGroup, Label, Input,   Card, CardImg, CardText, CardBody,
-    CardTitle, CardSubtitle, Button
+    CardTitle, CardSubtitle, Button, Table
    } from 'reactstrap';
 import { useCookies } from 'react-cookie';
 import bgImage from '../assets/bg.jpg';
@@ -21,8 +21,9 @@ export const Login: React.FC = () => {
     const [errorLogin, seterrorLogin] = useState(false);
 
     React.useEffect(() => {
+        if(!cookies.login) window.location.href = '/';
         if(cookies.login.isAuth) window.location.href = '/dashboard';
-    });
+    },[]);
       
     const handleChange = (prop: keyof State) => (
         event: React.ChangeEvent<HTMLInputElement>

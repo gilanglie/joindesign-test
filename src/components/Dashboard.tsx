@@ -1,34 +1,60 @@
 import React, { useState } from 'react';
 import { Container, Row, Col, Form, FormGroup, Label, Input,   Card, CardImg, CardText, CardBody,
-    CardTitle, CardSubtitle, Button
+    CardTitle, CardSubtitle, Button,Table
    } from 'reactstrap';
 import { useCookies } from 'react-cookie';
-import bgImage from '../assets/bg.jpg';
 import logo from '../assets/logo-dark.svg';
+import axios from 'axios';
 
 interface State {
-    email: string;
-    password: string;
+    name: string;
+    salary: string;
 }
 export const Dashboard: React.FC = () => {
-    const [cookies, removeCookie] = useCookies(['login']);
+  const [cookies, setCookie] = useCookies(['login']);
 
     const [inputValue, setinputValue] = useState<any>('');
     const [values, setValues] = useState<State>({
-        email: '',
-        password: ''
+      name: '',
+      salary: ''
     });
+    const [tableEmployee, setTableEmployee] = useState([])
+    const [tableTotal, setTableTotal] = useState('')
     const [errorInput, seterrorInput] = useState(false);
     const [outputValue, setoutputValue] = useState(false);
     const [errorPassword, setErrorPassword] = useState(false);
 
+    const instance = axios.create({
+      baseURL: 'http://localhost:8000/api/',
+      timeout: 1000,
+    });
+
+    const getEmployees = async () =>{
+      instance.get('employees')
+      .then((response:any)=>{
+        console.log('res',response.data)
+        setTableEmployee(response.data.data)
+        setTableTotal(response.data.total)
+      })
+      .catch( err => console.log(err));
+    }
+    const createEmployees = (data:State) => {
+      instance.post('employees', data)
+        .then((response:any)=>{
+          console.log('res',response.data)
+          getEmployees()
+        })
+        .catch( err => console.log(err));
+    }
     React.useEffect(() => {
         if(!cookies.login.isAuth) window.location.href = '/';
-    });
+        getEmployees();
+    },[]);
     const handleLogout = (
       event: React.FormEvent<HTMLInputElement> | React.FormEvent<HTMLFormElement>
     ) => {
-          removeCookie('login', { path: '/' });
+          setCookie('login', {isAuth: false});
+          // removeCookie('login', { path: '/' });
           window.location.href = '/';
     }; 
     const handleChange = (prop: keyof State) => (
@@ -36,6 +62,19 @@ export const Dashboard: React.FC = () => {
       ) => {
         setValues({ ...values, [prop]: event.target.value }); 
       };
+    const handlePost = (
+      event: React.FormEvent<HTMLInputElement> | React.FormEvent<HTMLFormElement>
+    ) => {
+      createEmployees(values);
+    }
+    const handleDelete = (e:any, id: any) => {
+      instance.delete(`employees/${id}`)
+      .then((response:any)=>{
+        console.log('res',response.data)
+        getEmployees()
+      })
+      .catch( err => console.log(err));
+    } 
     const handleInputChange = (
         event: React.ChangeEvent<HTMLInputElement>
     ) => {
@@ -45,6 +84,15 @@ export const Dashboard: React.FC = () => {
     const handleSubmit = (
       event: React.FormEvent<HTMLInputElement> | React.FormEvent<HTMLFormElement>
     ) => {
+      // !inputValue ? seterrorInput(true) : seterrorInput(false);
+      // const str = inputValue;
+      // instance.get(`reduce/${str}`)
+      // .then((response:any)=>{
+      //   console.log('res',response.data)
+      //   setoutputValue(response.data)
+      // })
+      // .catch( err => console.log(err));
+
       event.preventDefault();
       !inputValue ? seterrorInput(true) : seterrorInput(false);
       const str = inputValue;
@@ -89,7 +137,7 @@ export const Dashboard: React.FC = () => {
                 <Card>
                     <CardBody className="mb-5">
                     <CardTitle className="text-center m-4"><h2>Problem Solving</h2></CardTitle>
-                    <CardText>                         
+                    <CardText>                      
                         <Form>
                             <FormGroup>
                                 <Input type="text" placeholder="Input String" onChange={ e => {handleInputChange(e)}} />
@@ -106,35 +154,51 @@ export const Dashboard: React.FC = () => {
                 <Card>
                     <CardBody className="mb-5">
                     <CardTitle className="text-center m-4"><h2>Database</h2></CardTitle>
-                    <CardText>                         
-                        <Row>
-                          <Col>
-                          <h4>Sql Script</h4>
-                            <p>
-                            CREATE TABLE employees ( <br/>
-                                id INT(6) UNSIGNED AUTO_INCREMENT PRIMARY KEY, <br/>
-                                name VARCHAR(30) NOT NULL, <br/>
-                                salary VARCHAR(30) NOT NULL<br/>
-                            ); <br/>
-                            <br/>
-                            <br/>
-                            INSERT INTO `employees` (`name`, `salary`) <br/>
-                            VALUES ( 'Gavin', '1420'); <br/>
-                            INSERT INTO `employees` (`name`, `salary`) <br/>
-                            VALUES ( 'Norie', '2006'); <br/>
-                            INSERT INTO `employees` (`name`, `salary`) <br/>
-                            VALUES ( 'Somya', '2210'); <br/>
-                            INSERT INTO `employees` (`name`, `salary`) <br/>
-                            VALUES ( 'Waiman', '3000'); <br/>
-                            </p>
-                          </Col>
-                          <Col>
-                          <h4>SQL Query</h4>
-                            <p>
-                            SELECT AVG(salary) - AVG(REPLACE(salary, '0', '')) AS avg_salary FROM employees;
-                            </p>
-                          </Col>
-                        </Row>
+                    <CardText>    
+                      <Form>
+                          <FormGroup>
+                            <Label >Name</Label>
+                            <Input type="text" onChange={handleChange('name')}/>
+                          </FormGroup>
+                          <FormGroup>
+                            <Label>Salary</Label>
+                            <Input type="number" onChange={handleChange('salary')}/>
+                          </FormGroup>
+                          <Button onClick={handlePost}>Submit</Button>
+                      </Form>
+                      <Table dark className="mt-4">
+                        <thead>
+                          <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Salary</th>
+                            <th>Edit</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {tableEmployee.map((e : any, i : any) => {
+                            return(
+                            <tr>
+                              <th scope="row">{e.id}</th>
+                              <td>{e.name}</td>
+                              <td>{e.salary}</td>
+                              <td><Button color="red" style={{color:'red'}} onClick={(t)=> handleDelete(t ,e.id)}>Delete</Button></td>
+                            </tr>
+                            )
+                            
+                          })}
+                        </tbody>
+                        <tfoot>
+                          <tr>
+                            <td colSpan={2}>
+                              TOTAL  
+                            </td>
+                            <td colSpan={2}>
+                              {tableTotal}  
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </Table>
                     </CardText>
                     </CardBody>
                 </Card>
